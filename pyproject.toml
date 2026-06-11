@@ -1,0 +1,58 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "tuivisy"
+version = "0.1.0"
+description = "Terminal UI for CODESYS PLC visualizations and variables over OPC UA"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "phobic" }]
+keywords = ["codesys", "opcua", "plc", "tui", "textual", "webvisu"]
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: Manufacturing",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Human Machine Interfaces",
+]
+dependencies = [
+    "textual>=1.0",
+    "asyncua>=1.1",
+]
+
+[project.scripts]
+tuivisy = "tuivisy.__main__:main"
+
+[project.urls]
+Homepage = "https://github.com/phobicdotno/tuivisy"
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=0.24",
+    "ruff>=0.8",
+    "mypy>=1.13",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# asyncua re-exports its public API implicitly (no __all__ / explicit re-export)
+module = ["asyncua", "asyncua.*"]
+implicit_reexport = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
