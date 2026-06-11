@@ -28,12 +28,13 @@ tuivisy = "tuivisy.__main__:main"
 [project.urls]
 Homepage = "https://github.com/phobicdotno/tuivisy"
 
-[dependency-groups]
+[project.optional-dependencies]
 dev = [
     "pytest>=8",
     "pytest-asyncio>=0.24",
     "ruff>=0.8",
     "mypy>=1.13",
+    "build>=1.2",
 ]
 
 [tool.ruff]
