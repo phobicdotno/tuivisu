@@ -1,4 +1,4 @@
-# tuivisy
+# tuivisu
 
 Terminal UI for CODESYS PLCs — a TUI take on the WebVisu, readable and editable
 over SSH. Connects to the PLC's **OPC UA** server (the supported, documented
@@ -8,13 +8,13 @@ and deliberately not used).
 ## Install
 
 ```bash
-pipx install tuivisy
+pipx install tuivisu
 ```
 
 ## Run
 
 ```bash
-tuivisy --url opc.tcp://<plc>:4840 --user <device-user> --password <pw>
+tuivisu --url opc.tcp://<plc>:4840 --user <device-user> --password <pw>
 ```
 
 Keys: `q` quit - arrow keys browse - type to edit a writable value.

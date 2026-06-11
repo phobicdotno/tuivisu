@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "tuivisy"
+name = "tuivisu"
 version = "0.1.0"
 description = "Terminal UI for CODESYS PLC visualizations and variables over OPC UA"
 readme = "README.md"
@@ -23,10 +23,10 @@ dependencies = [
 ]
 
 [project.scripts]
-tuivisy = "tuivisy.__main__:main"
+tuivisu = "tuivisu.__main__:main"
 
 [project.urls]
-Homepage = "https://github.com/phobicdotno/tuivisy"
+Homepage = "https://github.com/phobicdotno/tuivisu"
 
 [project.optional-dependencies]
 dev = [

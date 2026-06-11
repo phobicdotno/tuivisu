@@ -1,20 +1,20 @@
-"""Command-line entry point: tuivisy [--url ...] [--user ...] [--password ...]."""
+"""Command-line entry point: tuivisu [--url ...] [--user ...] [--password ...]."""
 
 from __future__ import annotations
 
 import argparse
 
-from tuivisy import __version__
-from tuivisy.app import TuivisyApp
-from tuivisy.plc import PlcConfig
+from tuivisu import __version__
+from tuivisu.app import TuivisuApp
+from tuivisu.plc import PlcConfig
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="tuivisy",
+        prog="tuivisu",
         description="Terminal UI for CODESYS PLC visualizations over OPC UA.",
     )
-    parser.add_argument("--version", action="version", version=f"tuivisy {__version__}")
+    parser.add_argument("--version", action="version", version=f"tuivisu {__version__}")
     parser.add_argument(
         "--url",
         default="opc.tcp://localhost:4840",
@@ -28,7 +28,7 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     config = PlcConfig(url=args.url, username=args.user, password=args.password)
-    TuivisyApp(config).run()
+    TuivisuApp(config).run()
     return 0
 
 

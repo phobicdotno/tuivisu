@@ -2,8 +2,8 @@
 
 from textual.widgets import DataTable, Static
 
-from tuivisy.app import TuivisyApp
-from tuivisy.plc import PlcConfig
+from tuivisu.app import TuivisuApp
+from tuivisu.plc import PlcConfig
 
 
 def unreachable_config() -> PlcConfig:
@@ -12,7 +12,7 @@ def unreachable_config() -> PlcConfig:
 
 
 async def test_app_mounts_and_reports_failed_connection() -> None:
-    app = TuivisyApp(unreachable_config())
+    app = TuivisuApp(unreachable_config())
     async with app.run_test(size=(100, 30)) as pilot:
         await pilot.pause(1.5)
         status = app.query_one("#status", Static)
@@ -22,7 +22,7 @@ async def test_app_mounts_and_reports_failed_connection() -> None:
 
 
 async def test_q_quits() -> None:
-    app = TuivisyApp(unreachable_config())
+    app = TuivisuApp(unreachable_config())
     async with app.run_test(size=(100, 30)) as pilot:
         await pilot.press("q")
     assert app.return_value is None  # app exited cleanly

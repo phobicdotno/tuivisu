@@ -1,6 +1,6 @@
 name: release
-# Repository: phobicdotno/tuivisy
-# PyPI Trusted Publisher binding: account `phobic`, repo `phobicdotno/tuivisy`, workflow `release.yml`
+# Repository: phobicdotno/tuivisu
+# PyPI Trusted Publisher binding: account `phobic`, repo `phobicdotno/tuivisu`, workflow `release.yml`
 on:
   push:
     tags: ["v*"]

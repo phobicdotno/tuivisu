@@ -1,6 +1,6 @@
 """OPC UA connection to a CODESYS runtime.
 
-Wraps asyncua.Client with the bits tuivisy needs: optional username/password
+Wraps asyncua.Client with the bits tuivisu needs: optional username/password
 auth (CODESYS device users), reconnect-friendly connect/disconnect, and
 browse/read/write helpers that speak in plain Python values.
 """

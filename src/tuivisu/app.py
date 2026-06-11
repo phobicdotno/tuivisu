@@ -1,4 +1,4 @@
-"""The tuivisy Textual application shell.
+"""The tuivisu Textual application shell.
 
 v0.1: connects to the PLC's OPC UA server, shows connection state, and lists
 browsable variables. Navigation: arrow keys. Exit: q (the only shortcut).
@@ -13,14 +13,14 @@ from textual.binding import Binding
 from textual.containers import Vertical
 from textual.widgets import DataTable, Footer, Header, Static
 
-from tuivisy import __version__
-from tuivisy.plc import PlcConfig, PlcConnection
+from tuivisu import __version__
+from tuivisu.plc import PlcConfig, PlcConnection
 
 
-class TuivisyApp(App[None]):
+class TuivisuApp(App[None]):
     """Terminal view of a CODESYS PLC."""
 
-    TITLE = f"tuivisy {__version__}"
+    TITLE = f"tuivisu {__version__}"
 
     BINDINGS: ClassVar = [
         Binding("q", "quit", "Quit"),
