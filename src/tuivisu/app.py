@@ -15,6 +15,7 @@ from textual import on
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Vertical
+from textual.message import Message
 from textual.screen import ModalScreen
 from textual.widgets import Button, DataTable, Footer, Header, Input, Label, Static
 
@@ -23,16 +24,28 @@ from tuivisu.edit import coerce, is_editable
 from tuivisu.plc import PlcConfig, PlcConnection, VariableInfo
 
 
+class ValueChanged(Message):
+    """A PLC data-change notification, hopped onto the Textual message queue."""
+
+    def __init__(self, node_id: str, value: Any) -> None:
+        self.node_id = node_id
+        self.value = value
+        super().__init__()
+
+
 class _SubHandler:
-    """asyncua data-change callback that forwards updates to the app."""
+    """asyncua data-change callback that forwards updates to the app.
+
+    The callback fires on the asyncua task, which shares the Textual event
+    loop. ``post_message`` is safe to call from there (unlike
+    ``call_from_thread``, which rejects calls from the app's own thread).
+    """
 
     def __init__(self, app: TuivisuApp) -> None:
         self._app = app
 
     def datachange_notification(self, node: Any, val: Any, data: Any) -> None:
-        # Runs on the asyncua task in the same event loop; hop to the app
-        # thread-safely so the DataTable is touched from the UI context.
-        self._app.call_from_thread(self._app.on_value_change, node.nodeid.to_string(), val)
+        self._app.post_message(ValueChanged(node.nodeid.to_string(), val))
 
 
 class EditScreen(ModalScreen[str | None]):
@@ -48,6 +61,8 @@ class EditScreen(ModalScreen[str | None]):
     #buttons { height: auto; margin-top: 1; align-horizontal: right; }
     Button { margin-left: 2; }
     """
+
+    BINDINGS: ClassVar = [Binding("escape", "cancel", "Cancel")]
 
     def __init__(self, var: VariableInfo) -> None:
         super().__init__()
@@ -70,7 +85,7 @@ class EditScreen(ModalScreen[str | None]):
         self.dismiss(self.query_one("#value", Input).value)
 
     @on(Button.Pressed, "#cancel")
-    def _cancel(self) -> None:
+    def action_cancel(self) -> None:
         self.dismiss(None)
 
 
@@ -81,7 +96,6 @@ class TuivisuApp(App[None]):
 
     BINDINGS: ClassVar = [
         Binding("q", "quit", "Quit"),
-        Binding("enter", "edit", "Edit value"),
     ]
 
     CSS = """
@@ -103,7 +117,8 @@ class TuivisuApp(App[None]):
 
     async def on_mount(self) -> None:
         table = self.query_one("#variables", DataTable)
-        table.add_columns("Variable", "Value", "Type", "Access")
+        for name in ("Variable", "Value", "Type", "Access"):
+            table.add_column(name, key=name)
         self.run_worker(self._connect_and_load(), exclusive=True)
 
     async def _connect_and_load(self) -> None:
@@ -119,6 +134,8 @@ class TuivisuApp(App[None]):
         for var in variables:
             self._vars[var.node_id] = var
             table.add_row(*self._row_cells(var), key=var.node_id)
+        if table.row_count:
+            table.focus()
         status.update(f"{self.plc.config.url} - {len(variables)} variables - subscribing...")
         try:
             self._subscription = await self.plc.subscribe(list(self._vars), _SubHandler(self))
@@ -132,30 +149,33 @@ class TuivisuApp(App[None]):
         editable = " *" if (var.writable and is_editable(var.data_type, var.value)) else ""
         return (var.browse_path, _fmt(var.value), var.data_type, access + editable)
 
-    def on_value_change(self, node_id: str, value: Any) -> None:
-        var = self._vars.get(node_id)
+    @on(ValueChanged)
+    def _on_value_changed(self, message: ValueChanged) -> None:
+        var = self._vars.get(message.node_id)
         if var is None:
             return
-        var.value = value
+        var.value = message.value
         table = self.query_one("#variables", DataTable)
         with suppress(Exception):  # row may not be mounted yet during startup
-            table.update_cell(node_id, "Value", _fmt(value))
+            table.update_cell(message.node_id, "Value", _fmt(message.value))
 
-    async def action_edit(self) -> None:
-        table = self.query_one("#variables", DataTable)
-        if table.cursor_row < 0:
-            return
-        cell_key = table.coordinate_to_cell_key(table.cursor_coordinate)
-        node_id = cell_key.row_key.value
+    @on(DataTable.RowSelected)
+    def _on_row_selected(self, event: DataTable.RowSelected) -> None:
+        node_id = event.row_key.value
         var = self._vars.get(node_id) if node_id else None
         if var is None:
             return
         if not (var.writable and is_editable(var.data_type, var.value)):
             self.notify(f"{var.browse_path} is not an editable scalar", severity="warning")
             return
-        text = await self.push_screen_wait(EditScreen(var))
-        if text is None:
-            return
+
+        def after(text: str | None) -> None:
+            if text is not None:
+                self.run_worker(self._write_value(var, text))
+
+        self.push_screen(EditScreen(var), after)
+
+    async def _write_value(self, var: VariableInfo, text: str) -> None:
         try:
             value = coerce(var.data_type, text)
         except ValueError as exc:

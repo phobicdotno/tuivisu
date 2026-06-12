@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "tuivisu"
-version = "0.2.0"
+version = "0.2.1"
 description = "Terminal UI for CODESYS PLC visualizations and variables over OPC UA"
 readme = "README.md"
 requires-python = ">=3.11"
