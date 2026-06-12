@@ -74,6 +74,20 @@ class PlcConnection:
         dtype = await node.read_data_type_as_variant_type()
         await node.write_value(ua.Variant(value, dtype))
 
+    async def subscribe(self, node_ids: list[str], handler: Any, period_ms: int = 500) -> Any:
+        """Create a data-change subscription for the given variables.
+
+        ``handler`` must expose ``datachange_notification(node, val, data)``
+        (asyncua's callback protocol). Returns the subscription so the caller
+        can ``delete()`` it on teardown.
+        """
+        client = self._require_client()
+        sub = await client.create_subscription(period_ms, handler)
+        nodes = [client.get_node(nid) for nid in node_ids]
+        if nodes:
+            await sub.subscribe_data_change(nodes)
+        return sub
+
     async def find_application_roots(self) -> list[tuple[str, Node]]:
         """Locate the CODESYS application branches that carry IEC variables.
 

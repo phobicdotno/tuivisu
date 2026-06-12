@@ -17,7 +17,13 @@ pipx install tuivisu
 tuivisu --url opc.tcp://<plc>:4840 --user <device-user> --password <pw>
 ```
 
-Keys: `q` quit - arrow keys browse - type to edit a writable value.
+Keys: `q` quit - arrow keys browse - **Enter** edit the selected value.
+
+Values are **live** (OPC UA subscription) and update in place. Rows whose
+Access shows `rw *` are editable scalars; Enter opens an input and **confirms
+before writing** to the PLC. Which variables appear is whatever the project's
+**Symbol Configuration** publishes — curate the set in the IDE, exactly like
+binding a WebVisu to specific GVLs / program variables.
 
 ## PLC prerequisites
 
