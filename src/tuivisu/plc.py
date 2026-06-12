@@ -101,6 +101,10 @@ class PlcConnection:
                     continue
                 if cls != ua.NodeClass.Object:
                     continue
+                # The standard `Server` object mirrors the application via
+                # Organizes references; walking it would duplicate every node.
+                if name == "Server" and depth == 0:
+                    continue
                 child_path = f"{path}.{name}" if path else name
                 if name in ("GlobalVars", "Programs"):
                     roots.append((child_path, child))
@@ -119,17 +123,24 @@ class PlcConnection:
         """
         client = self._require_client()
         found: list[VariableInfo] = []
+        seen: set[str] = set()
         if root is not None:
-            await self._walk(root, prefix, 0, max_depth, found)
+            await self._walk(root, prefix, 0, max_depth, found, seen)
             return found
         for label, branch in await self.find_application_roots():
-            await self._walk(branch, label.rsplit(".", 1)[-1], 0, max_depth, found)
+            await self._walk(branch, label.rsplit(".", 1)[-1], 0, max_depth, found, seen)
         if not found:
-            await self._walk(client.nodes.objects, "", 0, max_depth, found)
+            await self._walk(client.nodes.objects, "", 0, max_depth, found, seen)
         return found
 
     async def _walk(
-        self, node: Node, prefix: str, depth: int, max_depth: int, found: list[VariableInfo]
+        self,
+        node: Node,
+        prefix: str,
+        depth: int,
+        max_depth: int,
+        found: list[VariableInfo],
+        seen: set[str],
     ) -> None:
         if depth > max_depth:
             return
@@ -138,14 +149,19 @@ class PlcConnection:
         except ua.UaError:
             return
         for child in children:
+            node_id = child.nodeid.to_string()
+            if node_id in seen:
+                continue
             try:
                 name = (await child.read_browse_name()).Name
                 cls = await child.read_node_class()
             except ua.UaError:
                 continue
             path = f"{prefix}.{name}" if prefix else name
+            is_array = False
             if cls == ua.NodeClass.Variable:
-                info = VariableInfo(node_id=child.nodeid.to_string(), browse_path=path, node=child)
+                seen.add(node_id)
+                info = VariableInfo(node_id=node_id, browse_path=path, node=child)
                 try:
                     info.value = await child.read_value()
                     info.data_type = (await child.read_data_type_as_variant_type()).name
@@ -155,6 +171,10 @@ class PlcConnection:
                         info.writable = bool(level & ua.AccessLevel.CurrentWrite.mask)
                 except ua.UaError:
                     pass
+                is_array = isinstance(info.value, list | tuple)
                 found.append(info)
-            if cls in (ua.NodeClass.Object, ua.NodeClass.Variable):
-                await self._walk(child, path, depth + 1, max_depth, found)
+            # Recurse into structures (ExtensionObject fields appear as child
+            # nodes) but NOT into array element nodes, which only repeat the
+            # parent's list value.
+            if cls == ua.NodeClass.Object or (cls == ua.NodeClass.Variable and not is_array):
+                await self._walk(child, path, depth + 1, max_depth, found, seen)
